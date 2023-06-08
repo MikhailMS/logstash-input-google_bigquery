@@ -1,0 +1,6 @@
+vendor/
+.gradle/
+.bundle/
+
+*.gem
+Gemfile.lock
