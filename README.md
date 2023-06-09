@@ -50,8 +50,10 @@ bundle exec rspec
 
 
 ## Notes:
-1. If plugin is used on Logstash that is behind proxies, ensure to add below flags when starting Logstash process
+1. If plugin is used on Logstash that is behind proxies, ensure to have ENV proxy variables set before starting Logstash:
 ```
 export HTTPS_PROXY=<proxy_url>:<proxy_port>
 ```
-2.Interesting, but `google-cloud-bigquery` gem is not being packed together with this plugin when it gets build (probably missing something), so `google-cloud-bigquery` gem (and its dependencies) must be manually copied into `LOGSTASH_PATH/vendor/cache`, otherwise you won't be able to install it (only locally, when you prepare-offline-pack it gets sorted nicely)
+2. Known limitations:
+    1. Do not handle fetching large amounts of data (pagination)
+3.Interesting, but `google-cloud-bigquery` gem is not being packed together with this plugin when it gets build (probably missing something), so `google-cloud-bigquery` gem (and its dependencies) must be manually copied into `LOGSTASH_PATH/vendor/cache`, otherwise you won't be able to install it (only locally, when you prepare-offline-pack it gets sorted nicely)

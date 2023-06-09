@@ -16,14 +16,15 @@ module LogStash
 
 
         def search(priority)
-          @logger.info("Query: #{@query}")
-          query_job  = @client.query_job(@query, priority: priority)
+          run_time  = Time.now.utc.strftime("%Y-%m-%d %H:%M:%S")
+          query_job = @client.query_job(@query, priority: priority, params: { run_time: run_time }, types: { run_time: :TIMESTAMP })
 
           @logger.debug("Created query job in #{query_job.gapi.job_reference.location}")
+          @logger.debug("Final query: #{query_job.gapi.configuration.query.query}")
 
           query_job.wait_until_done!
 
-          if query_job.done? && query_job.error.nil?
+          if query_job.done? && !query_job.failed?
             return query_job.query_results
           end
         end
@@ -32,7 +33,7 @@ module LogStash
         private
 
         def initialise_google_client(json_key_file, project_id)
-          @logger.info("Initializing Google API client #{project_id} key: #{json_key_file}")
+          @logger.info("Initializing Google API client [#{project_id}] with key located @ #{json_key_file}")
           err = get_key_file_error json_key_file
           raise err unless err.nil?
 

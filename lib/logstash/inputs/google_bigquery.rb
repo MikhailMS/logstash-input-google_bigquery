@@ -25,7 +25,7 @@ require 'logstash/inputs/bigquery/bq_client'
 #
 #      region         => "europe-west1"          (optional)    
 #      priority       => "INTERACTIVE"           (optional) **
-#      query          => "SELECT 1"              (optional)
+#      query          => "SELECT 1"              (optional) ***
 #      schedule       => "* * * * *"             (optional)
 #    }
 # }
@@ -34,6 +34,10 @@ require 'logstash/inputs/bigquery/bq_client'
 #   https://cloud.google.com/docs/authentication/production[Application Default Credentials]
 #
 # ** Available options are [BATCH, INTERACTIVE], INTERACTIVE is default
+#
+# *** There is one named parameter available - @run_time TIMESTAMP(YYYY-mm-dd HH:MM:SS) - which may
+#     prove useful in some cases; it is a dynamic value, so each time search is executed,
+#     @run_time would have new value (uses Ruby Time.now.utc)
 #
 # --------------------------
 
@@ -95,8 +99,11 @@ class LogStash::Inputs::GoogleBigQuery < LogStash::Inputs::Base
 
   def execute_search(queue)
     results = @bq_client.search(@priority)
+    return if results.nil?
+
     results.each do |result|
       @codec.decode(result.to_json) do |event|
+        decorate(event)
         queue << event
       end
     end
