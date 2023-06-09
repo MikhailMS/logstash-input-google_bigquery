@@ -54,4 +54,4 @@ bundle exec rspec
 ```
 export HTTPS_PROXY=<proxy_url>:<proxy_port>
 ```
-2. *Sometimes you can face an issue that some gems are too old - in this case you need to upgrade the gems versions in `build.gradle`
+2.Interesting, but `google-cloud-bigquery` gem is not being packed together with this plugin when it gets build (probably missing something), so `google-cloud-bigquery` gem (and its dependencies) must be manually copied into `LOGSTASH_PATH/vendor/cache`, otherwise you won't be able to install it (only locally, when you prepare-offline-pack it gets sorted nicely)
