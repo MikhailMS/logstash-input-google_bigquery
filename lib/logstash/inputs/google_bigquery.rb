@@ -24,6 +24,7 @@ require 'logstash/inputs/bigquery/bq_client'
 #      json_key_file  => "/path/to/key.json"     (optional) *
 #
 #      region         => "europe-west1"          (optional)    
+#      priority       => "INTERACTIVE"           (optional) **
 #      query          => "SELECT 1"              (optional)
 #      schedule       => "* * * * *"             (optional)
 #    }
@@ -31,6 +32,8 @@ require 'logstash/inputs/bigquery/bq_client'
 #
 # * If the key is not used, then the plugin tries to find
 #   https://cloud.google.com/docs/authentication/production[Application Default Credentials]
+#
+# ** Available options are [BATCH, INTERACTIVE], INTERACTIVE is default
 #
 # --------------------------
 
@@ -61,6 +64,9 @@ class LogStash::Inputs::GoogleBigQuery < LogStash::Inputs::Base
 
   # Specify region where Job would be executed
   config :region,   validate: :string, required: false, default: 'us-central1'
+
+  # Specify job priority
+  config :priority, validate: :string, required: false, default: 'INTERACTIVE'
   
   # Specify schedule (in Cron format) to periodically run the query
   config :schedule, validate: :string, required: false
@@ -69,7 +75,7 @@ class LogStash::Inputs::GoogleBigQuery < LogStash::Inputs::Base
   def register
     @logger.debug('Registering Google Cloud BigQuery input plugin')
 
-    @bq_client = LogStash::Inputs::BigQuery::BQClient.new @json_key_file, @project_id, @region, @query, @logger
+    @bq_client = LogStash::Inputs::BigQuery::BQClient.new @json_key_file, @project_id, @query, @logger
     @stopping  = Concurrent::AtomicBoolean.new(false)
   end
 
@@ -77,20 +83,23 @@ class LogStash::Inputs::GoogleBigQuery < LogStash::Inputs::Base
   def run(queue)
     if @schedule
       # Run scheduler
+      @logger.info("Running query at the schedule: #{@schedule}")
       scheduler.cron(@schedule) { execute_search(queue) }
       scheduler.join
     else
       # Run once
+      @logger.info('Running query as a one-shot')
       execute_search(queue)
     end
   end
 
   def execute_search(queue)
-    result = @bq_client.search()
-    @logger.info("Results: #{result}")
-    # @codec.decode(result) do |event|
-    #   queue << result
-    # end
+    results = @bq_client.search(@priority)
+    results.each do |result|
+      @codec.decode(result.to_json) do |event|
+        queue << event
+      end
+    end
   end
 
   def stopping?

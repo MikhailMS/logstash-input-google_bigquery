@@ -1,6 +1,5 @@
 require 'google/cloud/bigquery'
 
-# require 'securerandom'
 
 module LogStash
   module Inputs
@@ -8,18 +7,17 @@ module LogStash
 
       class BQClient
 
-        def initialize(json_key_file, project_id, region, query, logger)
+        def initialize(json_key_file, project_id, query, logger)
           @logger = logger
 
           @client = initialise_google_client json_key_file, project_id
-          # @region = region
           @query  = query.gsub("\\", "")
         end
 
 
-        def search()
+        def search(priority)
           @logger.info("Query: #{@query}")
-          query_job  = @client.query_job(@query, priority: "INTERACTIVE")
+          query_job  = @client.query_job(@query, priority: priority)
 
           @logger.debug("Created query job in #{query_job.gapi.job_reference.location}")
 
@@ -27,7 +25,6 @@ module LogStash
 
           if query_job.done? && query_job.error.nil?
             return query_job.query_results
-            # return query_job.total_rows
           end
         end
 
