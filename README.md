@@ -54,6 +54,6 @@ bundle exec rspec
 ```
 export HTTPS_PROXY=<proxy_url>:<proxy_port>
 ```
-2. Known limitations:
+2. Interesting, but `google-cloud-bigquery` gem is not being packed together with this plugin when it gets build (probably missing something), so `google-cloud-bigquery` gem (and its dependencies) must be manually copied into `LOGSTASH_PATH/vendor/cache`, otherwise you won't be able to install it (only locally, when you prepare-offline-pack it gets sorted nicely)
+3. Known limitations:
     1. Do not handle fetching large amounts of data (pagination)
-3.Interesting, but `google-cloud-bigquery` gem is not being packed together with this plugin when it gets build (probably missing something), so `google-cloud-bigquery` gem (and its dependencies) must be manually copied into `LOGSTASH_PATH/vendor/cache`, otherwise you won't be able to install it (only locally, when you prepare-offline-pack it gets sorted nicely)
