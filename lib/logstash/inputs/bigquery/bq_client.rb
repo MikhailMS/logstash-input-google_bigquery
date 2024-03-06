@@ -7,17 +7,20 @@ module LogStash
 
       class BQClient
 
-        def initialize(json_key_file, project_id, query, logger)
-          @logger = logger
+        def initialize(json_key_file, project_id, proxy, logger)
+          Faraday.default_connection_options.proxy      = proxy
+          Google::Apis::ClientOptions.default.proxy_url = proxy
 
+          @logger = logger
           @client = initialise_google_client json_key_file, project_id
-          @query  = query.gsub("\\", "")
         end
 
 
-        def search(priority)
+        def search(query, region, priority)
           run_time  = Time.now.utc.strftime("%Y-%m-%d %H:%M:%S")
-          query_job = @client.query_job(@query, priority: priority, params: { run_time: run_time }, types: { run_time: :TIMESTAMP })
+          query_job = @client.query_job(query, priority: priority, params: { run_time: run_time }, types: { run_time: :TIMESTAMP }) do |job|
+            job.location = region
+          end
 
           @logger.debug("Created query job in #{query_job.gapi.job_reference.location}")
           @logger.debug("Final query: #{query_job.gapi.configuration.query.query}")
@@ -41,7 +44,8 @@ module LogStash
 
           Google::Cloud::Bigquery.new(
             project_id:  project_id,
-            credentials: creds
+            credentials: creds,
+            retries:     5
           )
           # Need to also set
           # .setHeaderProvider(http_headers())

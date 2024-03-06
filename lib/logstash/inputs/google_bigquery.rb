@@ -18,15 +18,17 @@ require 'logstash/inputs/bigquery/bq_client'
 # --------------------------
 # input {
 #    google_bigquery {
-#      project_id     => "test-bigquery-project" (required)
-#      dataset        => "logs"                  (required)
-#      table_name     => "test"                  (required)
-#      json_key_file  => "/path/to/key.json"     (optional) *
+#      project_id     => "test-bigquery-project"     (required)
+#      dataset        => "logs"                      (required)
+#      table_name     => "test"                      (required)
+#      json_key_file  => "/path/to/key.json"         (optional) *
 #
-#      region         => "europe-west1"          (optional)    
-#      priority       => "INTERACTIVE"           (optional) **
-#      query          => "SELECT 1"              (optional) ***
-#      schedule       => "* * * * *"             (optional)
+#      region         => "europe-west1"              (optional)
+#      priority       => "INTERACTIVE"               (optional) **
+#      query          => "SELECT 1"                  (optional) ***
+#      schedule       => "* * * * *"                 (optional)
+#
+#      proxy          => http://proxy.url:proxy_port (optional)
 #    }
 # }
 #
@@ -75,12 +77,16 @@ class LogStash::Inputs::GoogleBigQuery < LogStash::Inputs::Base
   # Specify schedule (in Cron format) to periodically run the query
   config :schedule, validate: :string, required: false
 
+  # Specify proxies
+  config :proxy, validate: :string, required: false
+
 
   def register
     @logger.debug('Registering Google Cloud BigQuery input plugin')
 
-    @bq_client = LogStash::Inputs::BigQuery::BQClient.new @json_key_file, @project_id, @query, @logger
+    @query     = @query.gsub("\\", "")
     @stopping  = Concurrent::AtomicBoolean.new(false)
+    @bq_client = LogStash::Inputs::BigQuery::BQClient.new @json_key_file, @project_id, @proxy, @logger
   end
 
 
@@ -98,7 +104,7 @@ class LogStash::Inputs::GoogleBigQuery < LogStash::Inputs::Base
   end
 
   def execute_search(queue)
-    results = @bq_client.search(@priority)
+    results = @bq_client.search(@query, @region, @priority)
     return if results.nil?
 
     results.each do |result|
